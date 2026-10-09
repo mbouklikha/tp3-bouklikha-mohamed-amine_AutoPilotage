@@ -47,3 +47,16 @@ dépenses, nombre d'interventions, coût moyen, dépenses par véhicule et par
 type, kilométrage total. Section « Statistiques » avec cartes et graphiques
 en barres CSS, état vide propre, tableau de bord affichant les dépenses
 réelles.
+
+## Serveur MCP local (harness OpenCode)
+
+`src/mcp/server.ts` expose 3 outils **lecture seule** sur la base existante
+(`list_vehicles`, `get_maintenance_summary`, `list_reminders`), via le SDK
+officiel `@modelcontextprotocol/sdk` v1. Connexion SQLite en lecture seule
+(`readOnly`), requêtes SELECT paramétrées, chemin de base fixe
+(`data/autopilotage.db`, non configurable par les outils), aucun secret.
+Déclaré dans `opencode.jsonc` (`mcp.servers.autopilotage`, syntaxe OpenCode V2). Lancement manuel : `npm run build` puis `npm run mcp`.
+
+Vérifier la connexion dans OpenCode : `opencode mcp list` (serveur
+`autopilotage` connecté), puis `/mcps`. Les outils apparaissent comme
+`autopilotage_list_vehicles`, etc.
