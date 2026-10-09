@@ -1,0 +1,68 @@
+{
+  "name": "Programme d'entretien indicatif AutoPilotage",
+  "version": 1,
+  "disclaimer": "Suggestions purement indicatives pour assister la planification, sans valeur officielle. Ne remplace ni le carnet d'entretien ni les préconisations du constructeur : vérifiez toujours la documentation de votre véhicule. Aucune échéance ci-dessous n'est une recommandation constructeur vérifiée.",
+  "fuels": ["Essence", "Diesel", "Hybride", "Électrique", "GPL"],
+  "rules": [
+    {
+      "category": "vidange",
+      "label": "Vidange moteur",
+      "every_km": 15000,
+      "every_months": 12,
+      "fuels": ["Essence", "Diesel", "Hybride", "GPL"],
+      "timing": null,
+      "source": "indicative",
+      "note": "Ordre de grandeur usuel ; les intervalles réels varient selon motorisation et usage."
+    },
+    {
+      "category": "filtre-huile",
+      "label": "Filtre à huile",
+      "every_km": 15000,
+      "every_months": 12,
+      "fuels": ["Essence", "Diesel", "Hybride", "GPL"],
+      "timing": null,
+      "source": "indicative",
+      "note": "Généralement remplacé en même temps que la vidange."
+    },
+    {
+      "category": "filtre-air",
+      "label": "Filtre à air",
+      "every_km": 30000,
+      "every_months": 24,
+      "fuels": ["Essence", "Diesel", "Hybride", "GPL"],
+      "timing": null,
+      "source": "indicative",
+      "note": "À contrôler plus souvent en environnement poussiéreux."
+    },
+    {
+      "category": "liquide-frein",
+      "label": "Liquide de frein",
+      "every_km": null,
+      "every_months": 24,
+      "fuels": null,
+      "timing": null,
+      "source": "indicative",
+      "note": "Le liquide de frein absorbe l'humidité avec le temps ; contrôle périodique recommandé."
+    },
+    {
+      "category": "distribution",
+      "label": "Courroie de distribution",
+      "every_km": 120000,
+      "every_months": 72,
+      "fuels": ["Essence", "Diesel", "Hybride", "GPL"],
+      "timing": "belt",
+      "source": "indicative",
+      "note": "Concerne uniquement les moteurs à courroie. Ne s'applique pas aux moteurs à chaîne ; en cas de doute, ne pas planifier et vérifier la documentation du véhicule."
+    },
+    {
+      "category": "controle-technique",
+      "label": "Contrôle technique",
+      "every_km": null,
+      "every_months": 24,
+      "fuels": null,
+      "timing": null,
+      "source": "indicative",
+      "note": "Périodicité indicative : vérifiez la réglementation applicable dans votre pays."
+    }
+  ]
+}

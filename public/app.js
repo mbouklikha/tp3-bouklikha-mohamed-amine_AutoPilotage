@@ -610,8 +610,8 @@ document.getElementById("rem-form").addEventListener("submit", async (e) => {
 
 // ---- Fiche véhicule ----
 
-const fiche = { id: null, tab: "apercu", vehicle: null, records: [], total: 0, reminders: [] };
-const FTABS = ["apercu", "entretiens", "rappels"];
+const fiche = { id: null, tab: "apercu", vehicle: null, records: [], total: 0, reminders: [], plan: null };
+const FTABS = ["apercu", "entretiens", "rappels", "plan"];
 
 function openFiche(id, tab) {
   if (!Number.isInteger(id) || id <= 0) {
@@ -628,6 +628,7 @@ function openFiche(id, tab) {
   });
   for (const t of FTABS) document.getElementById(`ftab-${t}`).hidden = t !== fiche.tab;
   loadFiche();
+  if (fiche.tab === "plan") loadFichePlan();
 }
 
 async function loadFiche() {
@@ -816,6 +817,104 @@ document.querySelectorAll("#section-fiche [data-ftab]").forEach((b) => {
   b.addEventListener("click", () => {
     if (fiche.id !== null) openFiche(fiche.id, b.dataset.ftab);
   });
+});
+
+// ---- Plan d'entretien (suggestions, aucune création automatique) ----
+
+function planDueText(s) {
+  const bits = [];
+  if (s.due_date) bits.push(`échéance : ${s.due_date}`);
+  if (s.due_mileage !== undefined) bits.push(`${Number(s.due_mileage).toLocaleString("fr-FR")} km`);
+  if (s.uncertain) bits.push("estimation à ajuster (sans historique fiable)");
+  bits.push("intervalle indicatif");
+  return bits.join(" · ");
+}
+
+async function loadFichePlan() {
+  const err = document.getElementById("fiche-plan-error");
+  const loading = document.getElementById("fiche-plan-loading");
+  const result = document.getElementById("fiche-plan-result");
+  err.hidden = true;
+  result.hidden = true;
+  loading.hidden = false;
+  try {
+    const data = await api(`/api/vehicles/${fiche.id}/plan`);
+    fiche.plan = data;
+    loading.hidden = true;
+    renderFichePlan();
+  } catch (e) {
+    loading.hidden = true;
+    err.textContent = e.message;
+    err.hidden = false;
+  }
+}
+
+function renderFichePlan() {
+  const plan = fiche.plan;
+  const list = document.getElementById("fiche-plan-list");
+  const empty = document.getElementById("fiche-plan-empty");
+  const skippedBox = document.getElementById("fiche-plan-skipped");
+  list.innerHTML = "";
+  if (!plan) return;
+  document.getElementById("fiche-plan-disclaimer").textContent = plan.disclaimer || "";
+  const suggestions = plan.suggestions || [];
+  empty.hidden = suggestions.length !== 0;
+  for (const s of suggestions) {
+    const li = document.createElement("li");
+    li.className = "vehicle-card";
+    const label = document.createElement("label");
+    label.className = "plan-check";
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.value = s.category;
+    check.setAttribute("aria-label", `Créer un rappel : ${s.label}`);
+    const div = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = s.label;
+    const small = document.createElement("small");
+    small.textContent = planDueText(s);
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = s.overdue ? "En retard" : "À venir";
+    div.append(strong, small, badge);
+    label.append(check, div);
+    li.appendChild(label);
+    list.appendChild(li);
+  }
+  const skipped = plan.skipped || [];
+  if (skipped.length === 0) {
+    skippedBox.hidden = true;
+  } else {
+    skippedBox.hidden = false;
+    skippedBox.textContent = `Non proposé : ${skipped.map((x) => x.category).join(", ")} (déjà suivi, non applicable ou à vérifier).`;
+  }
+}
+
+document.getElementById("fiche-plan-submit").addEventListener("click", async () => {
+  const err = document.getElementById("fiche-plan-error");
+  const result = document.getElementById("fiche-plan-result");
+  err.hidden = true;
+  result.hidden = true;
+  const categories = [...document.querySelectorAll("#fiche-plan-list input[type=checkbox]:checked")].map((c) => c.value);
+  if (categories.length === 0) {
+    err.textContent = "Sélectionnez au moins une suggestion à créer.";
+    err.hidden = false;
+    return;
+  }
+  try {
+    const data = await api(`/api/vehicles/${fiche.id}/plan`, {
+      method: "POST",
+      body: JSON.stringify({ categories }),
+    });
+    const n = (data.created || []).length;
+    result.textContent = n === 1 ? "1 rappel créé." : `${n} rappels créés.`;
+    result.hidden = false;
+    await loadFichePlan();
+    await loadFiche();
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+  }
 });
 document.getElementById("fiche-back").addEventListener("click", () => show("dashboard"));
 document.getElementById("fiche-edit").addEventListener("click", () => {

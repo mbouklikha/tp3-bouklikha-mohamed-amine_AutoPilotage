@@ -4,6 +4,26 @@ import path from "node:path";
 
 export type Db = DatabaseSync;
 
+/**
+ * Exécute fn dans une transaction SQLite : tout est validé (COMMIT) ou
+ * rien (ROLLBACK en cas d'erreur, qui est re-lancée à l'appelant).
+ */
+export function runTransaction<T>(db: Db, fn: () => T): T {
+  db.exec("BEGIN");
+  try {
+    const result = fn();
+    db.exec("COMMIT");
+    return result;
+  } catch (e) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {
+      // Le rollback lui-même ne doit pas masquer l'erreur d'origine.
+    }
+    throw e;
+  }
+}
+
 export function openDatabase(dbPath: string): Db {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new DatabaseSync(dbPath);

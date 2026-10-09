@@ -196,6 +196,7 @@
             <button type="button" role="tab" data-ftab="apercu" class="active">Vue d'ensemble</button>
             <button type="button" role="tab" data-ftab="entretiens">Entretiens</button>
             <button type="button" role="tab" data-ftab="rappels">Rappels</button>
+            <button type="button" role="tab" data-ftab="plan">Plan d'entretien</button>
           </div>
           <div id="ftab-apercu" role="tabpanel">
             <section class="panel"><h2>Informations</h2><div id="fiche-info"></div></section>
@@ -243,6 +244,21 @@
                 <div class="actions"><button type="submit">Ajouter</button></div>
                 <p id="fiche-rem-error" class="alert" role="alert" hidden></p>
               </form>
+            </section>
+          </div>
+          <div id="ftab-plan" role="tabpanel" hidden>
+            <section class="panel">
+              <h2>Plan d'entretien suggéré</h2>
+              <p class="hint" id="fiche-plan-disclaimer">Intervalles indicatifs, sans valeur officielle : vérifiez le carnet d'entretien de votre véhicule.</p>
+              <div id="fiche-plan-error" class="alert" role="alert" hidden></div>
+              <div id="fiche-plan-loading">Chargement du plan…</div>
+              <div id="fiche-plan-empty" class="panel" hidden><strong>Aucune suggestion pour le moment.</strong></div>
+              <ul id="fiche-plan-list" class="vehicle-list"></ul>
+              <div id="fiche-plan-skipped" class="hint" hidden></div>
+              <div class="actions">
+                <button type="button" id="fiche-plan-submit">Créer les rappels sélectionnés</button>
+              </div>
+              <p id="fiche-plan-result" class="alert" role="status" hidden></p>
             </section>
           </div>
         </div>

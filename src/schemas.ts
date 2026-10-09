@@ -83,6 +83,11 @@ export const reminderSchema = z
 
 export type ReminderInput = z.infer<typeof reminderSchema>;
 
+/** Sélection explicite de catégories pour POST /api/vehicles/:id/plan. */
+export const planCreateSchema = z.object({
+  categories: z.array(z.string().trim().min(1).max(60)),
+});
+
 export type ReminderStatus = "a_venir" | "en_retard" | "termine";
 
 export interface Reminder extends Omit<ReminderInput, "due_date" | "due_mileage" | "done"> {
