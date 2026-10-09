@@ -7,6 +7,7 @@ import { defaultDbPath, openDatabase } from "./db.js";
 import { vehicleRouter } from "./routes/vehicles.js";
 import { maintenanceRouter } from "./routes/maintenance.js";
 import { reminderRouter } from "./routes/reminders.js";
+import { reportRouter } from "./routes/report.js";
 import { statsRouter } from "./routes/stats.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +30,7 @@ export function createApp(options: AppOptions = {}): express.Express {
   app.use("/api/vehicles", vehicleRouter(db));
   app.use("/api/vehicles/:vehicleId/maintenance", maintenanceRouter(db));
   app.use("/api/reminders", reminderRouter(db));
+  app.use("/api/vehicles/:vehicleId/report.pdf", reportRouter(db));
   app.use("/api/stats", statsRouter(db));
   app.use(express.static(publicDir));
   // JSON 404 for unknown API routes; let static middleware handle the rest.

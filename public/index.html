@@ -3,38 +3,68 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AutoPilotage — Suivi automobile</title>
+  <meta name="description" content="AutoPilotage — tableau de bord et suivi d'entretien de vos véhicules." />
+  <title>AutoPilotage — Mon garage</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
   <div class="layout">
-    <aside class="sidebar">
-      <div class="brand">🏎️ AutoPilotage</div>
+    <aside class="sidebar" aria-label="Navigation principale">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">AP</span> AutoPilotage</div>
       <nav>
-        <a href="#" class="active" data-section="dashboard">Tableau de bord</a>
-        <a href="#vehicules" data-section="vehicules">Véhicules</a>
-        <a href="#entretiens" data-section="entretiens">Entretiens</a>
-        <a href="#rappels" data-section="rappels">Rappels</a>
-        <a href="#stats" data-section="stats">Statistiques</a>
+        <a href="#" class="active" data-section="dashboard"><span aria-hidden="true">🏠</span> Tableau de bord</a>
+        <a href="#vehicules" data-section="vehicules"><span aria-hidden="true">🚗</span> Véhicules</a>
+        <a href="#entretiens" data-section="entretiens"><span aria-hidden="true">🔧</span> Entretiens</a>
+        <a href="#rappels" data-section="rappels"><span aria-hidden="true">⏰</span> Rappels</a>
+        <a href="#stats" data-section="stats"><span aria-hidden="true">📊</span> Statistiques</a>
       </nav>
       <div class="server-status">Serveur : <span id="server-status">vérification…</span></div>
     </aside>
-    <main>
-      <section id="section-dashboard">
-        <header class="topbar">
-          <h1>Tableau de bord</h1>
-          <p class="hint">Aperçu basé sur vos véhicules enregistrés.</p>
+    <main id="main">
+      <section id="section-dashboard" aria-label="Tableau de bord">
+        <header class="hero panel-glow">
+          <div>
+            <p class="eyebrow">Mon garage intelligent</p>
+            <h1>Tableau de bord</h1>
+            <p class="hint">Vue d'ensemble de vos véhicules, échéances et dépenses — données réelles.</p>
+          </div>
+          <div class="hero-actions">
+            <button type="button" id="cta-add-vehicle">＋ Ajouter un véhicule</button>
+            <button type="button" id="cta-add-reminder" class="ghost">⏰ Programmer un rappel</button>
+          </div>
         </header>
-        <section class="cards">
-          <article class="card"><h2>Véhicules suivis</h2><p class="big" id="stat-count">…</p><small>Données réelles</small></article>
-          <article class="card"><h2>Kilométrage total</h2><p class="big" id="stat-km">…</p><small>Données réelles</small></article>
-          <article class="card"><h2>Dépenses totales</h2><p class="big" id="stat-expenses">…</p><small>Entretiens et réparations</small></article>
-        </section>
+        <div id="dash-error" class="alert" role="alert" hidden></div>
+        <div id="dash-content">
+          <section class="cards kpi" aria-label="Indicateurs">
+            <article class="card kpi-card"><span class="kpi-icon" aria-hidden="true">🚗</span><div><h2>Véhicules suivis</h2><p class="big" id="stat-count">…</p><small id="stat-km">…</small></div></article>
+            <article class="card kpi-card"><span class="kpi-icon" aria-hidden="true">💶</span><div><h2>Dépenses d'entretien</h2><p class="big" id="stat-expenses">…</p><small>Coûts enregistrés</small></div></article>
+            <article class="card kpi-card alert-card" id="kpi-late"><span class="kpi-icon" aria-hidden="true">🚨</span><div><h2>Rappels en retard</h2><p class="big" id="stat-late">…</p><small>À traiter en priorité</small></div></article>
+            <article class="card kpi-card"><span class="kpi-icon" aria-hidden="true">📅</span><div><h2>Échéances à venir</h2><p class="big" id="stat-upcoming">…</p><small>Rappels programmés</small></div></article>
+          </section>
+          <div class="dash-grid">
+            <section class="panel" aria-label="À surveiller" aria-live="polite">
+              <h2>À surveiller</h2>
+              <ul id="dash-alerts" class="alert-list"></ul>
+            </section>
+            <section aria-label="Mon garage">
+              <div class="section-head">
+                <h2>Mon garage</h2>
+                <button type="button" id="cta-manage" class="ghost">Gérer les véhicules →</button>
+              </div>
+              <div id="dash-empty" class="panel" hidden>
+                <strong>Aucun véhicule enregistré.</strong>
+                <p>Ajoutez votre premier véhicule pour activer le tableau de bord.</p>
+              </div>
+              <div id="garage-grid" class="garage-grid"></div>
+            </section>
+          </div>
+        </div>
       </section>
 
-      <section id="section-vehicules" hidden>
+      <section id="section-vehicules" hidden aria-label="Véhicules">
         <header class="topbar"><h1>Véhicules</h1></header>
-        <div id="vehicles-error" class="alert" hidden></div>
+        <div id="vehicles-error" class="alert" role="alert" hidden></div>
         <div id="vehicles-loading">Chargement…</div>
         <div id="vehicles-empty" class="panel" hidden>
           <strong>Aucun véhicule enregistré.</strong>
@@ -45,23 +75,28 @@
           <h2 id="form-title">Ajouter un véhicule</h2>
           <form id="vehicle-form">
             <div class="grid">
-              <label>Marque *<input name="brand" required maxlength="60" /></label>
-              <label>Modèle *<input name="model" required maxlength="60" /></label>
-              <label>Année *<input name="year" type="number" required min="1900" /></label>
+              <label>Marque *<select name="brand" id="vf-brand" required></select></label>
+              <label id="vf-brand-custom-wrap" hidden>Marque (saisie libre)<input id="vf-brand-custom" maxlength="60" autocomplete="off" /></label>
+              <label>Modèle *<select name="model" id="vf-model" required></select></label>
+              <label id="vf-model-custom-wrap" hidden>Modèle (saisie libre)<input id="vf-model-custom" maxlength="60" autocomplete="off" /></label>
+              <label>Année *<select name="year" id="vf-year" required></select></label>
+              <label id="vf-year-custom-wrap" hidden>Année (saisie libre)<input id="vf-year-custom" type="number" min="1900" /></label>
               <label>Kilométrage *<input name="mileage" type="number" required min="0" step="1" /></label>
-              <label>Motorisation<input name="fuel" maxlength="30" placeholder="Essence, Diesel…" /></label>
-              <label>Immatriculation<input name="plate" maxlength="20" /></label>
+              <label>Motorisation<select name="fuel" id="vf-fuel"></select></label>
+              <label id="vf-fuel-custom-wrap" hidden>Motorisation (saisie libre)<input id="vf-fuel-custom" maxlength="30" autocomplete="off" /></label>
+              <label>Immatriculation<input name="plate" maxlength="20" autocomplete="off" /></label>
             </div>
+            <p class="hint">Catalogue local illustratif (sans valeur officielle) — choisissez « Autre… » pour une saisie libre.</p>
             <div class="actions">
               <button type="submit" id="form-submit">Ajouter</button>
               <button type="button" id="form-cancel" hidden>Annuler</button>
             </div>
-            <p id="form-error" class="alert" hidden></p>
+            <p id="form-error" class="alert" role="alert" hidden></p>
           </form>
         </section>
       </section>
 
-      <section id="section-entretiens" hidden>
+      <section id="section-entretiens" hidden aria-label="Entretiens et réparations">
         <header class="topbar"><h1>Entretiens et réparations</h1></header>
         <div class="panel">
           <label>Véhicule
@@ -69,7 +104,7 @@
           </label>
           <p id="maint-total">Total : —</p>
         </div>
-        <div id="maint-error" class="alert" hidden></div>
+        <div id="maint-error" class="alert" role="alert" hidden></div>
         <div id="maint-loading">Chargement…</div>
         <div id="maint-empty" class="panel" hidden>
           <strong>Aucune intervention enregistrée pour ce véhicule.</strong>
@@ -87,7 +122,7 @@
                   <option value="autre">Autre</option>
                 </select>
               </label>
-              <label>Titre *<input name="title" required maxlength="100" /></label>
+              <label>Titre *<input name="title" required maxlength="100" autocomplete="off" /></label>
               <label>Date *<input name="date" type="date" required /></label>
               <label>Kilométrage *<input name="mileage" type="number" required min="0" step="1" /></label>
               <label>Coût (€) *<input name="cost" type="number" required min="0" step="0.01" /></label>
@@ -97,20 +132,20 @@
               <button type="submit" id="maint-submit">Ajouter</button>
               <button type="button" id="maint-cancel" hidden>Annuler</button>
             </div>
-            <p id="maint-form-error" class="alert" hidden></p>
+            <p id="maint-form-error" class="alert" role="alert" hidden></p>
           </form>
         </section>
       </section>
 
-      <section id="section-rappels" hidden>
+      <section id="section-rappels" hidden aria-label="Rappels d'entretien">
         <header class="topbar"><h1>Rappels d'entretien</h1></header>
-        <div class="panel filters">
+        <div class="panel filters" role="group" aria-label="Filtrer les rappels">
           <button type="button" data-filter="" class="active">Tous</button>
           <button type="button" data-filter="a_venir">À venir</button>
           <button type="button" data-filter="en_retard">En retard</button>
           <button type="button" data-filter="termine">Terminés</button>
         </div>
-        <div id="rem-error" class="alert" hidden></div>
+        <div id="rem-error" class="alert" role="alert" hidden></div>
         <div id="rem-loading">Chargement…</div>
         <div id="rem-empty" class="panel" hidden>
           <strong>Aucun rappel pour le moment.</strong>
@@ -122,7 +157,7 @@
           <form id="rem-form">
             <div class="grid">
               <label>Véhicule *<select name="vehicle_id" id="rem-vehicle" required></select></label>
-              <label>Titre *<input name="title" required maxlength="100" /></label>
+              <label>Titre *<input name="title" required maxlength="100" autocomplete="off" /></label>
               <label>Date d'échéance<input name="due_date" type="date" /></label>
               <label>Kilométrage prévu<input name="due_mileage" type="number" min="0" step="1" /></label>
             </div>
@@ -131,17 +166,94 @@
               <button type="submit" id="rem-submit">Ajouter</button>
               <button type="button" id="rem-cancel" hidden>Annuler</button>
             </div>
-            <p id="rem-form-error" class="alert" hidden></p>
+            <p id="rem-form-error" class="alert" role="alert" hidden></p>
           </form>
         </section>
       </section>
 
-      <section id="section-stats" hidden>
+      <section id="section-fiche" hidden aria-label="Fiche véhicule">
+        <button type="button" id="fiche-back" class="ghost">← Retour au garage</button>
+        <div id="fiche-error" class="alert" role="alert" hidden></div>
+        <div id="fiche-loading">Chargement de la fiche…</div>
+        <div id="fiche-content" hidden>
+          <header class="hero panel-glow">
+            <div>
+              <p class="eyebrow">Fiche véhicule</p>
+              <h1 id="fiche-title">…</h1>
+              <p class="hint" id="fiche-sub">…</p>
+            </div>
+            <div class="hero-actions">
+              <button type="button" id="fiche-edit">✏️ Modifier</button>
+              <button type="button" id="fiche-pdf">⬇ Télécharger l'historique PDF</button>
+            </div>
+          </header>
+          <section class="cards">
+            <article class="card"><h2>Dépenses d'entretien</h2><p class="big" id="fiche-total">…</p><small id="fiche-count">…</small></article>
+            <article class="card"><h2>Rappels en retard</h2><p class="big" id="fiche-late">…</p><small>À traiter en priorité</small></article>
+            <article class="card"><h2>Prochaines échéances</h2><p class="big" id="fiche-upcoming">…</p><small>Rappels à venir</small></article>
+          </section>
+          <div class="panel filters" role="tablist" aria-label="Onglets de la fiche">
+            <button type="button" role="tab" data-ftab="apercu" class="active">Vue d'ensemble</button>
+            <button type="button" role="tab" data-ftab="entretiens">Entretiens</button>
+            <button type="button" role="tab" data-ftab="rappels">Rappels</button>
+          </div>
+          <div id="ftab-apercu" role="tabpanel">
+            <section class="panel"><h2>Informations</h2><div id="fiche-info"></div></section>
+            <section class="panel"><h2>Dernières interventions</h2><ul id="fiche-last" class="vehicle-list"></ul></section>
+            <section class="panel"><h2>Prochaines échéances</h2><ul id="fiche-next" class="vehicle-list"></ul></section>
+          </div>
+          <div id="ftab-entretiens" role="tabpanel" hidden>
+            <div id="fiche-maint-empty" class="panel" hidden><strong>Aucune intervention enregistrée pour ce véhicule.</strong></div>
+            <ul id="fiche-maint-list" class="vehicle-list"></ul>
+            <section class="panel">
+              <h2>Ajouter un entretien</h2>
+              <form id="fiche-maint-form">
+                <div class="grid">
+                  <label>Type *
+                    <select name="type" required>
+                      <option value="entretien">Entretien</option>
+                      <option value="reparation">Réparation</option>
+                      <option value="controle">Contrôle technique</option>
+                      <option value="autre">Autre</option>
+                    </select>
+                  </label>
+                  <label>Titre *<input name="title" required maxlength="100" autocomplete="off" /></label>
+                  <label>Date *<input name="date" type="date" required /></label>
+                  <label>Kilométrage *<input name="mileage" type="number" required min="0" step="1" /></label>
+                  <label>Coût (€) *<input name="cost" type="number" required min="0" step="0.01" /></label>
+                  <label>Description<textarea name="description" maxlength="500" rows="2"></textarea></label>
+                </div>
+                <div class="actions"><button type="submit">Ajouter</button></div>
+                <p id="fiche-maint-error" class="alert" role="alert" hidden></p>
+              </form>
+            </section>
+          </div>
+          <div id="ftab-rappels" role="tabpanel" hidden>
+            <div id="fiche-rem-empty" class="panel" hidden><strong>Aucun rappel pour ce véhicule.</strong></div>
+            <ul id="fiche-rem-list" class="vehicle-list"></ul>
+            <section class="panel">
+              <h2>Ajouter un rappel</h2>
+              <form id="fiche-rem-form">
+                <div class="grid">
+                  <label>Titre *<input name="title" required maxlength="100" autocomplete="off" /></label>
+                  <label>Date d'échéance<input name="due_date" type="date" /></label>
+                  <label>Kilométrage prévu<input name="due_mileage" type="number" min="0" step="1" /></label>
+                </div>
+                <p class="hint">Au moins une échéance (date ou kilométrage) est requise.</p>
+                <div class="actions"><button type="submit">Ajouter</button></div>
+                <p id="fiche-rem-error" class="alert" role="alert" hidden></p>
+              </form>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-stats" hidden aria-label="Statistiques">
         <header class="topbar">
           <h1>Statistiques</h1>
           <p class="hint">Calculées depuis vos données enregistrées.</p>
         </header>
-        <div id="stats-error" class="alert" hidden></div>
+        <div id="stats-error" class="alert" role="alert" hidden></div>
         <div id="stats-loading">Chargement…</div>
         <div id="stats-empty" class="panel" hidden>
           <strong>Aucune donnée pour le moment.</strong>
@@ -165,6 +277,6 @@
       </section>
     </main>
   </div>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=2"></script>
 </body>
 </html>

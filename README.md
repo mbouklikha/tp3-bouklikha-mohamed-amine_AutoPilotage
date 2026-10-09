@@ -48,6 +48,13 @@ type, kilométrage total. Section « Statistiques » avec cartes et graphiques
 en barres CSS, état vide propre, tableau de bord affichant les dépenses
 réelles.
 
+Fiche véhicule (interface, URL `#fiche/:id/:onglet`) : identité complète,
+totaux, derniers entretiens, prochaines échéances, onglets Vue d'ensemble /
+Entretiens / Rappels avec ajout direct (véhicule préselectionné), boutons
+Modifier et « Télécharger l'historique PDF ». Historique PDF
+(`GET /api/vehicles/:id/report.pdf`, génération locale pdfkit, nom
+`historique-<Marque>-<Modele>-<id>.pdf`, 404 si inconnu).
+
 ## Serveur MCP local (harness OpenCode)
 
 `src/mcp/server.ts` expose 3 outils **lecture seule** sur la base existante
@@ -60,3 +67,12 @@ Déclaré dans `opencode.jsonc` (`mcp.servers.autopilotage`, syntaxe OpenCode V2
 Vérifier la connexion dans OpenCode : `opencode mcp list` (serveur
 `autopilotage` connecté), puis `/mcps`. Les outils apparaissent comme
 `autopilotage_list_vehicles`, etc.
+
+## Catalogue automobile local
+
+`public/catalog.json` assiste la saisie (marque → modèle → années →
+motorisation, avec repli « Autre… » en saisie libre). Données indicatives
+sans valeur officielle, structurées pour être enrichies (marques, modèles,
+plages `[min, max]`, motorisations). Testé par `tests/catalog.test.ts`.
+Les visuels des véhicules sont des emplacements neutres génériques, jamais
+présentés comme des photos des modèles.

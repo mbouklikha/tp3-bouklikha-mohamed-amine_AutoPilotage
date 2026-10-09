@@ -1,0 +1,73 @@
+{
+  "name": "Catalogue local illustratif AutoPilotage",
+  "note": "Données indicatives pour assister la saisie, sans valeur officielle. Enrichir en ajoutant des marques, modèles, plages d'années [min, max] et motorisations.",
+  "fuels": ["Essence", "Diesel", "Hybride", "Électrique", "GPL"],
+  "makes": [
+    {
+      "brand": "Renault",
+      "models": [
+        { "name": "Clio", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Hybride"] },
+        { "name": "Mégane", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Hybride"] },
+        { "name": "Captur", "years": [2013, 2026], "fuels": ["Essence", "Diesel", "Hybride"] },
+        { "name": "Scénic", "years": [2005, 2024], "fuels": ["Essence", "Diesel", "Électrique"] }
+      ]
+    },
+    {
+      "brand": "Peugeot",
+      "models": [
+        { "name": "208", "years": [2012, 2026], "fuels": ["Essence", "Diesel", "Électrique"] },
+        { "name": "2008", "years": [2013, 2026], "fuels": ["Essence", "Diesel", "Électrique"] },
+        { "name": "308", "years": [2007, 2026], "fuels": ["Essence", "Diesel", "Hybride"] },
+        { "name": "3008", "years": [2009, 2026], "fuels": ["Essence", "Diesel", "Hybride"] }
+      ]
+    },
+    {
+      "brand": "Citroën",
+      "models": [
+        { "name": "C3", "years": [2005, 2026], "fuels": ["Essence", "Électrique"] },
+        { "name": "C4", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Électrique"] },
+        { "name": "Berlingo", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Électrique"] }
+      ]
+    },
+    {
+      "brand": "Dacia",
+      "models": [
+        { "name": "Sandero", "years": [2008, 2026], "fuels": ["Essence", "GPL"] },
+        { "name": "Duster", "years": [2010, 2026], "fuels": ["Essence", "Diesel", "GPL", "Hybride"] },
+        { "name": "Jogger", "years": [2021, 2026], "fuels": ["Essence", "GPL", "Hybride"] }
+      ]
+    },
+    {
+      "brand": "Toyota",
+      "models": [
+        { "name": "Yaris", "years": [2005, 2026], "fuels": ["Essence", "Hybride"] },
+        { "name": "Corolla", "years": [2005, 2026], "fuels": ["Essence", "Hybride"] },
+        { "name": "RAV4", "years": [2005, 2026], "fuels": ["Essence", "Hybride"] }
+      ]
+    },
+    {
+      "brand": "Volkswagen",
+      "models": [
+        { "name": "Golf", "years": [2005, 2026], "fuels": ["Essence", "Diesel"] },
+        { "name": "Polo", "years": [2005, 2026], "fuels": ["Essence", "Diesel"] },
+        { "name": "Tiguan", "years": [2007, 2026], "fuels": ["Essence", "Diesel"] }
+      ]
+    },
+    {
+      "brand": "Opel",
+      "models": [
+        { "name": "Corsa", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Électrique"] },
+        { "name": "Astra", "years": [2005, 2026], "fuels": ["Essence", "Diesel", "Hybride"] },
+        { "name": "Mokka", "years": [2012, 2026], "fuels": ["Essence", "Diesel", "Électrique"] }
+      ]
+    },
+    {
+      "brand": "Ford",
+      "models": [
+        { "name": "Fiesta", "years": [2005, 2023], "fuels": ["Essence", "Diesel"] },
+        { "name": "Focus", "years": [2005, 2026], "fuels": ["Essence", "Diesel"] },
+        { "name": "Puma", "years": [2019, 2026], "fuels": ["Essence", "Hybride"] }
+      ]
+    }
+  ]
+}

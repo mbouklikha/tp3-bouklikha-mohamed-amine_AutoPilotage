@@ -2,15 +2,41 @@ const state = { vehicles: [], editingId: null, records: [], editingRecordId: nul
 
 const TYPE_LABELS = { entretien: "Entretien", reparation: "Réparation", controle: "Contrôle technique", autre: "Autre" };
 
+const SECTIONS = ["dashboard", "vehicules", "entretiens", "rappels", "stats", "fiche"];
+
 function show(section) {
-  for (const s of ["dashboard", "vehicules", "entretiens", "rappels", "stats"]) {
+  for (const s of SECTIONS) {
     document.getElementById(`section-${s}`).hidden = s !== section;
   }
   document.querySelectorAll(".sidebar nav a").forEach((a) => {
     a.classList.toggle("active", a.dataset.section === section);
   });
+  if (section !== "fiche" && window.location.hash !== `#${section}`) {
+    window.location.hash = section;
+  }
   if (section === "stats") loadStats();
+  if (section === "dashboard") loadDashboard();
 }
+
+function currentVisible() {
+  return SECTIONS.find((s) => !document.getElementById(`section-${s}`).hidden);
+}
+
+function route() {
+  const h = window.location.hash.replace(/^#/, "");
+  if (h.startsWith("fiche/")) {
+    const parts = h.split("/");
+    const id = Number(parts[1]);
+    const tab = parts[2] || "apercu";
+    if (currentVisible() !== "fiche" || fiche.id !== id || fiche.tab !== tab) openFiche(id, tab);
+  } else if (h !== "" && SECTIONS.includes(h) && h !== "fiche") {
+    if (currentVisible() !== h) show(h);
+  } else if (h === "" && currentVisible() !== "dashboard") {
+    show("dashboard");
+  }
+}
+
+window.addEventListener("hashchange", route);
 
 async function api(path, options) {
   const res = await fetch(path, {
@@ -44,11 +70,15 @@ function render() {
     const edit = document.createElement("button");
     edit.textContent = "Modifier";
     edit.onclick = () => startEdit(v);
+    const ficheBtn = document.createElement("button");
+    ficheBtn.textContent = "Fiche";
+    ficheBtn.className = "ghost";
+    ficheBtn.onclick = () => { window.location.hash = `fiche/${v.id}/apercu`; };
     const del = document.createElement("button");
     del.textContent = "Supprimer";
     del.className = "danger";
     del.onclick = () => removeVehicle(v);
-    li.querySelector(".row-actions").append(edit, del);
+    li.querySelector(".row-actions").append(ficheBtn, edit, del);
     list.appendChild(li);
   }
   const n = state.vehicles.length;
@@ -120,6 +150,7 @@ async function load() {
     render();
     syncMaintVehicleSelect();
     syncRemVehicleSelect();
+    loadDashboard();
   } catch (e) {
     err.textContent = e.message;
     err.hidden = false;
@@ -130,9 +161,14 @@ async function load() {
 function startEdit(v) {
   state.editingId = v.id;
   const f = document.getElementById("vehicle-form");
-  f.brand.value = v.brand; f.model.value = v.model;
-  f.year.value = v.year; f.mileage.value = v.mileage;
-  f.fuel.value = v.fuel || ""; f.plate.value = v.plate || "";
+  setSelectOrCustom("brand", v.brand);
+  refreshModels();
+  setSelectOrCustom("model", v.model);
+  refreshYearsFuels();
+  setSelectOrCustom("year", String(v.year));
+  setSelectOrCustom("fuel", v.fuel || "");
+  f.mileage.value = v.mileage;
+  f.plate.value = v.plate || "";
   document.getElementById("form-title").textContent = "Modifier le véhicule";
   document.getElementById("form-submit").textContent = "Enregistrer";
   document.getElementById("form-cancel").hidden = false;
@@ -141,6 +177,7 @@ function startEdit(v) {
 function resetForm() {
   state.editingId = null;
   document.getElementById("vehicle-form").reset();
+  initCatalogSelects();
   document.getElementById("form-title").textContent = "Ajouter un véhicule";
   document.getElementById("form-submit").textContent = "Ajouter";
   document.getElementById("form-cancel").hidden = true;
@@ -159,9 +196,9 @@ document.getElementById("vehicle-form").addEventListener("submit", async (e) => 
   const err = document.getElementById("form-error");
   err.hidden = true;
   const body = {
-    brand: f.brand.value.trim(), model: f.model.value.trim(),
-    year: Number(f.year.value), mileage: Number(f.mileage.value),
-    fuel: f.fuel.value.trim(), plate: f.plate.value.trim(),
+    brand: catalogValue("brand"), model: catalogValue("model"),
+    year: Number(catalogValue("year")), mileage: Number(f.mileage.value),
+    fuel: catalogValue("fuel"), plate: f.plate.value.trim(),
   };
   try {
     if (state.editingId === null) {
@@ -177,6 +214,126 @@ document.getElementById("vehicle-form").addEventListener("submit", async (e) => 
   }
 });
 document.getElementById("form-cancel").addEventListener("click", resetForm);
+
+// ---- Catalogue automobile local (menus dépendants) ----
+
+const CUSTOM = "__custom__";
+let catalog = null;
+
+function fillSelect(sel, options, placeholder) {
+  sel.innerHTML = "";
+  if (placeholder !== undefined) {
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = placeholder;
+    sel.appendChild(ph);
+  }
+  for (const opt of options) {
+    const o = document.createElement("option");
+    o.value = opt.value;
+    o.textContent = opt.label;
+    sel.appendChild(o);
+  }
+}
+
+function catalogMakes() { return catalog && catalog.makes ? catalog.makes : []; }
+function catalogModels(brand) {
+  const make = catalogMakes().find((m) => m.brand === brand);
+  return make ? make.models : [];
+}
+function catalogYears(brand, model) {
+  const m = catalogModels(brand).find((x) => x.name === model);
+  if (!m || !m.years) return [];
+  const out = [];
+  for (let y = m.years[1]; y >= m.years[0]; y--) out.push(String(y));
+  return out;
+}
+function catalogFuels(brand, model) {
+  const m = catalogModels(brand).find((x) => x.name === model);
+  if (m && m.fuels) return m.fuels;
+  if (catalog && catalog.fuels) return catalog.fuels;
+  return [];
+}
+
+function toggleCustom(field, isCustom) {
+  document.getElementById(`vf-${field}-custom-wrap`).hidden = !isCustom;
+  const custom = document.getElementById(`vf-${field}-custom`);
+  if (!isCustom) custom.value = "";
+}
+
+function refreshModels() {
+  const brand = document.getElementById("vf-brand").value;
+  const models = catalogModels(brand).map((m) => ({ value: m.name, label: m.name }));
+  fillSelect(document.getElementById("vf-model"), [...models, { value: CUSTOM, label: "Autre… (saisie libre)" }], "— Choisir —");
+  toggleCustom("model", false);
+  refreshYearsFuels();
+}
+
+function refreshYearsFuels() {
+  const brand = document.getElementById("vf-brand").value;
+  const model = document.getElementById("vf-model").value;
+  const years = catalogYears(brand, model).map((y) => ({ value: y, label: y }));
+  fillSelect(document.getElementById("vf-year"), [...years, { value: CUSTOM, label: "Autre… (saisie libre)" }], "— Choisir —");
+  toggleCustom("year", false);
+  fillSelect(
+    document.getElementById("vf-fuel"),
+    [...catalogFuels(brand, model).map((f) => ({ value: f, label: f })), { value: CUSTOM, label: "Autre… (saisie libre)" }],
+    "— Non précisée —",
+  );
+  toggleCustom("fuel", false);
+}
+
+function initCatalogSelects() {
+  const brands = catalogMakes().map((m) => ({ value: m.brand, label: m.brand }));
+  fillSelect(document.getElementById("vf-brand"), [...brands, { value: CUSTOM, label: "Autre… (saisie libre)" }], "— Choisir —");
+  toggleCustom("brand", false);
+  refreshModels();
+}
+
+function setSelectOrCustom(field, value) {
+  const sel = document.getElementById(`vf-${field}`);
+  const hasOption = [...sel.options].some((o) => o.value === value && value !== "");
+  if (hasOption) {
+    sel.value = value;
+    toggleCustom(field, false);
+  } else {
+    if ([...sel.options].some((o) => o.value === CUSTOM)) sel.value = CUSTOM;
+    document.getElementById(`vf-${field}-custom`).value = value;
+    toggleCustom(field, true);
+  }
+}
+
+function catalogValue(field) {
+  const sel = document.getElementById(`vf-${field}`);
+  if (sel.value === CUSTOM) return document.getElementById(`vf-${field}-custom`).value.trim();
+  return sel.value.trim();
+}
+
+async function loadCatalog() {
+  try {
+    const res = await fetch("/catalog.json");
+    if (!res.ok) throw new Error("catalogue indisponible");
+    catalog = await res.json();
+  } catch {
+    catalog = null;
+  }
+  initCatalogSelects();
+}
+
+document.getElementById("vf-brand").addEventListener("change", (e) => {
+  toggleCustom("brand", e.target.value === CUSTOM);
+  refreshModels();
+});
+document.getElementById("vf-model").addEventListener("change", (e) => {
+  toggleCustom("model", e.target.value === CUSTOM);
+  refreshYearsFuels();
+});
+document.getElementById("vf-year").addEventListener("change", (e) => {
+  toggleCustom("year", e.target.value === CUSTOM);
+});
+document.getElementById("vf-fuel").addEventListener("change", (e) => {
+  toggleCustom("fuel", e.target.value === CUSTOM);
+});
 
 // ---- Entretiens et réparations ----
 
@@ -451,6 +608,391 @@ document.getElementById("rem-form").addEventListener("submit", async (e) => {
   }
 });
 
+// ---- Fiche véhicule ----
+
+const fiche = { id: null, tab: "apercu", vehicle: null, records: [], total: 0, reminders: [] };
+const FTABS = ["apercu", "entretiens", "rappels"];
+
+function openFiche(id, tab) {
+  if (!Number.isInteger(id) || id <= 0) {
+    show("vehicules");
+    return;
+  }
+  fiche.id = id;
+  fiche.tab = FTABS.includes(tab) ? tab : "apercu";
+  show("fiche");
+  const target = `#fiche/${id}/${fiche.tab}`;
+  if (window.location.hash !== target) window.location.hash = target;
+  document.querySelectorAll("#section-fiche [data-ftab]").forEach((b) => {
+    b.classList.toggle("active", b.dataset.ftab === fiche.tab);
+  });
+  for (const t of FTABS) document.getElementById(`ftab-${t}`).hidden = t !== fiche.tab;
+  loadFiche();
+}
+
+async function loadFiche() {
+  const err = document.getElementById("fiche-error");
+  err.hidden = true;
+  document.getElementById("fiche-loading").hidden = false;
+  document.getElementById("fiche-content").hidden = true;
+  try {
+    const [vData, mData, rData] = await Promise.all([
+      api(`/api/vehicles/${fiche.id}`),
+      api(`/api/vehicles/${fiche.id}/maintenance`),
+      api(`/api/reminders?vehicle_id=${fiche.id}`),
+    ]);
+    fiche.vehicle = vData.vehicle;
+    fiche.records = mData.records || [];
+    fiche.total = mData.total || 0;
+    fiche.reminders = rData.reminders || [];
+    renderFiche();
+    document.getElementById("fiche-loading").hidden = true;
+    document.getElementById("fiche-content").hidden = false;
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+    document.getElementById("fiche-loading").hidden = true;
+  }
+}
+
+function ficheLine(label, value) {
+  const p = document.createElement("p");
+  const b = document.createElement("strong");
+  b.textContent = `${label} : `;
+  const s = document.createElement("span");
+  s.textContent = value;
+  p.append(b, s);
+  return p;
+}
+
+function renderFiche() {
+  const v = fiche.vehicle;
+  document.getElementById("fiche-title").textContent = `${v.brand} ${v.model}`;
+  document.getElementById("fiche-sub").textContent =
+    [v.year, v.fuel, v.plate, `${Number(v.mileage).toLocaleString("fr-FR")} km`].filter(Boolean).join(" · ");
+  document.getElementById("fiche-total").textContent = euros(fiche.total);
+  document.getElementById("fiche-count").textContent = `${fiche.records.length} intervention(s)`;
+  const late = fiche.reminders.filter((r) => r.status === "en_retard");
+  const upcoming = fiche.reminders.filter((r) => r.status === "a_venir");
+  document.getElementById("fiche-late").textContent = String(late.length);
+  document.getElementById("fiche-upcoming").textContent = String(upcoming.length);
+
+  const info = document.getElementById("fiche-info");
+  info.innerHTML = "";
+  const missing = (x) => (x === undefined || x === null || x === "" ? "Non renseigné" : String(x));
+  info.append(
+    ficheLine("Marque", missing(v.brand)), ficheLine("Modèle", missing(v.model)),
+    ficheLine("Année", missing(v.year)), ficheLine("Motorisation", missing(v.fuel)),
+    ficheLine("Immatriculation", missing(v.plate)),
+    ficheLine("Kilométrage", `${Number(v.mileage).toLocaleString("fr-FR")} km`),
+  );
+
+  const last = document.getElementById("fiche-last");
+  last.innerHTML = "";
+  if (fiche.records.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Aucune intervention enregistrée pour ce véhicule.";
+    last.appendChild(li);
+  }
+  for (const r of fiche.records.slice(0, 3)) {
+    const li = document.createElement("li");
+    li.className = "vehicle-card";
+    const div = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = `${TYPE_LABELS[r.type] || r.type} — ${r.title} — ${euros(r.cost)}`;
+    const small = document.createElement("small");
+    small.textContent = `${r.date} · ${Number(r.mileage).toLocaleString("fr-FR")} km`;
+    div.append(strong, small);
+    li.appendChild(div);
+    last.appendChild(li);
+  }
+
+  const next = document.getElementById("fiche-next");
+  next.innerHTML = "";
+  const pending = [...late, ...upcoming].slice(0, 5);
+  if (pending.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "Aucune échéance à venir pour ce véhicule.";
+    next.appendChild(li);
+  }
+  for (const r of pending) {
+    const li = document.createElement("li");
+    li.className = `vehicle-card status-${r.status}`;
+    const div = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = r.title;
+    const small = document.createElement("small");
+    const bits = [];
+    if (r.due_date) bits.push(`échéance : ${r.due_date}`);
+    if (r.due_mileage !== undefined) bits.push(`${Number(r.due_mileage).toLocaleString("fr-FR")} km`);
+    small.textContent = bits.join(" · ");
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = REM_STATUS[r.status] || r.status;
+    div.append(strong, small, badge);
+    li.appendChild(div);
+    next.appendChild(li);
+  }
+
+  const mList = document.getElementById("fiche-maint-list");
+  mList.innerHTML = "";
+  document.getElementById("fiche-maint-empty").hidden = fiche.records.length !== 0;
+  for (const r of fiche.records) {
+    const li = document.createElement("li");
+    li.className = "vehicle-card";
+    const div = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = `${TYPE_LABELS[r.type] || r.type} — ${r.title} — ${euros(r.cost)}`;
+    const small = document.createElement("small");
+    small.textContent = [`${r.date}`, `${Number(r.mileage).toLocaleString("fr-FR")} km`, r.description].filter(Boolean).join(" · ");
+    div.append(strong, small);
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+    const edit = document.createElement("button");
+    edit.type = "button"; edit.textContent = "Modifier";
+    edit.onclick = () => { startRecordEdit(r); show("entretiens"); };
+    const del = document.createElement("button");
+    del.type = "button"; del.textContent = "Supprimer"; del.className = "danger";
+    del.onclick = async () => {
+      if (!window.confirm(`Supprimer « ${r.title} » ?`)) return;
+      await api(`/api/vehicles/${fiche.id}/maintenance/${r.id}`, { method: "DELETE" });
+      await loadFiche();
+      await load();
+    };
+    actions.append(edit, del);
+    li.append(div, actions);
+    mList.appendChild(li);
+  }
+
+  const rList = document.getElementById("fiche-rem-list");
+  rList.innerHTML = "";
+  document.getElementById("fiche-rem-empty").hidden = fiche.reminders.length !== 0;
+  for (const r of fiche.reminders) {
+    const li = document.createElement("li");
+    li.className = `vehicle-card status-${r.status}`;
+    const div = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = r.title;
+    const small = document.createElement("small");
+    const bits = [];
+    if (r.due_date) bits.push(`échéance : ${r.due_date}`);
+    if (r.due_mileage !== undefined) bits.push(`${Number(r.due_mileage).toLocaleString("fr-FR")} km`);
+    small.textContent = bits.join(" · ");
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = REM_STATUS[r.status] || r.status;
+    div.append(strong, small, badge);
+    const actions = document.createElement("div");
+    actions.className = "row-actions";
+    if (r.status !== "termine") {
+      const done = document.createElement("button");
+      done.type = "button"; done.textContent = "Terminer";
+      done.onclick = async () => { await setReminderDone(r, true); await loadFiche(); };
+      const edit = document.createElement("button");
+      edit.type = "button"; edit.textContent = "Modifier";
+      edit.onclick = () => { startReminderEdit(r); show("rappels"); };
+      actions.append(done, edit);
+    } else {
+      const reopen = document.createElement("button");
+      reopen.type = "button"; reopen.textContent = "Rouvrir";
+      reopen.onclick = async () => { await setReminderDone(r, false); await loadFiche(); };
+      actions.appendChild(reopen);
+    }
+    const del = document.createElement("button");
+    del.type = "button"; del.textContent = "Supprimer"; del.className = "danger";
+    del.onclick = async () => {
+      if (!window.confirm(`Supprimer le rappel « ${r.title} » ?`)) return;
+      await api(`/api/reminders/${r.id}`, { method: "DELETE" });
+      await loadFiche();
+      await load();
+    };
+    actions.appendChild(del);
+    li.append(div, actions);
+    rList.appendChild(li);
+  }
+}
+
+document.querySelectorAll("#section-fiche [data-ftab]").forEach((b) => {
+  b.addEventListener("click", () => {
+    if (fiche.id !== null) openFiche(fiche.id, b.dataset.ftab);
+  });
+});
+document.getElementById("fiche-back").addEventListener("click", () => show("dashboard"));
+document.getElementById("fiche-edit").addEventListener("click", () => {
+  if (!fiche.vehicle) return;
+  show("vehicules");
+  startEdit(fiche.vehicle);
+  document.getElementById("vehicle-form").scrollIntoView({ behavior: "smooth" });
+});
+document.getElementById("fiche-pdf").addEventListener("click", () => {
+  if (fiche.id !== null) window.location.href = `/api/vehicles/${fiche.id}/report.pdf`;
+});
+document.getElementById("fiche-maint-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const err = document.getElementById("fiche-maint-error");
+  err.hidden = true;
+  try {
+    await api(`/api/vehicles/${fiche.id}/maintenance`, {
+      method: "POST",
+      body: JSON.stringify({
+        type: f.type.value, title: f.title.value.trim(), description: f.description.value.trim(),
+        date: f.date.value, mileage: Number(f.mileage.value), cost: Number(f.cost.value),
+      }),
+    });
+    f.reset();
+    await loadFiche();
+    await load();
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.hidden = false;
+  }
+});
+document.getElementById("fiche-rem-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const err = document.getElementById("fiche-rem-error");
+  err.hidden = true;
+  try {
+    await api("/api/reminders", {
+      method: "POST",
+      body: JSON.stringify({
+        vehicle_id: fiche.id, title: f.title.value.trim(), due_date: f.due_date.value,
+        due_mileage: f.due_mileage.value === "" ? undefined : Number(f.due_mileage.value),
+      }),
+    });
+    f.reset();
+    await loadFiche();
+    await load();
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.hidden = false;
+  }
+});
+
+// ---- Tableau de bord ----
+
+function goToVehicleSection(vehicleId, what) {
+  show(what === "reminders" ? "rappels" : what === "maintenance" ? "entretiens" : "vehicules");
+  const sel = document.getElementById(what === "reminders" ? "rem-vehicle" : "maint-vehicle");
+  if (sel && vehicleId !== undefined) {
+    sel.value = String(vehicleId);
+    sel.dispatchEvent(new Event("change"));
+  }
+  if (what === "edit") {
+    const v = state.vehicles.find((x) => x.id === vehicleId);
+    if (v) { startEdit(v); document.getElementById("vehicle-form").scrollIntoView({ behavior: "smooth" }); }
+  }
+}
+
+async function loadDashboard() {
+  const err = document.getElementById("dash-error");
+  const content = document.getElementById("dash-content");
+  err.hidden = true;
+  try {
+    const [statsData, remData] = await Promise.all([api("/api/stats"), api("/api/reminders")]);
+    const s = statsData.stats;
+    const reminders = remData.reminders || [];
+    content.hidden = false;
+    document.getElementById("stat-count").textContent = String(s.vehicleCount);
+    document.getElementById("stat-km").textContent = `${Number(s.totalMileage).toLocaleString("fr-FR")} km cumulés`;
+    document.getElementById("stat-expenses").textContent = euros(s.totalCost);
+    const late = reminders.filter((r) => r.status === "en_retard");
+    const upcoming = reminders.filter((r) => r.status === "a_venir");
+    document.getElementById("stat-late").textContent = String(late.length);
+    document.getElementById("stat-upcoming").textContent = String(upcoming.length);
+    document.getElementById("kpi-late").classList.toggle("alert-card", late.length > 0);
+
+    const alerts = document.getElementById("dash-alerts");
+    alerts.innerHTML = "";
+    if (late.length === 0) {
+      const li = document.createElement("li");
+      li.className = "ok-line";
+      li.textContent = "✓ Tout est à jour — aucun rappel en retard.";
+      alerts.appendChild(li);
+    } else {
+      for (const r of late.slice(0, 5)) {
+        const li = document.createElement("li");
+        const span = document.createElement("span");
+        span.textContent = `${r.title} — ${r.vehicle.brand} ${r.vehicle.model}`;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "Voir";
+        btn.onclick = () => goToVehicleSection(r.vehicle_id, "reminders");
+        li.append(span, btn);
+        alerts.appendChild(li);
+      }
+    }
+
+    const grid = document.getElementById("garage-grid");
+    grid.innerHTML = "";
+    document.getElementById("dash-empty").hidden = state.vehicles.length !== 0;
+    const spentByVehicle = new Map(s.byVehicle.map((b) => [b.vehicle_id, b]));
+    state.vehicles.forEach((v) => {
+      const spent = spentByVehicle.get(v.id);
+      const isLate = late.some((r) => r.vehicle_id === v.id);
+      const card = document.createElement("article");
+      card.className = "car-card";
+      const visual = document.createElement("div");
+      visual.className = "car-visual";
+      const generic = document.createElement("div");
+      generic.className = "car-generic";
+      generic.setAttribute("aria-hidden", "true");
+      const initial = document.createElement("span");
+      initial.textContent = (v.brand || "?").trim().charAt(0).toUpperCase() || "?";
+      generic.appendChild(initial);
+      visual.appendChild(generic);
+      const tag = document.createElement("span");
+      tag.className = "illus";
+      tag.textContent = "Visuel générique";
+      visual.appendChild(tag);
+      const info = document.createElement("div");
+      info.className = "car-info";
+      const name = document.createElement("strong");
+      name.textContent = `${v.brand} ${v.model}`;
+      const meta = document.createElement("p");
+      meta.className = "car-meta";
+      meta.textContent = [v.year, v.fuel, v.plate, `${Number(v.mileage).toLocaleString("fr-FR")} km`].filter(Boolean).join(" · ");
+      const status = document.createElement("span");
+      status.className = isLate ? "car-status warn" : "car-status";
+      status.textContent = isLate ? "● À surveiller" : "● Suivi OK";
+      const spentLine = document.createElement("p");
+      spentLine.className = "car-meta";
+      spentLine.textContent = spent ? `${euros(spent.total)} · ${spent.count} intervention(s)` : "Aucune dépense enregistrée";
+      const actions = document.createElement("div");
+      actions.className = "car-actions";
+      const bMaint = document.createElement("button");
+      bMaint.type = "button"; bMaint.textContent = "🔧 Entretiens";
+      bMaint.onclick = () => { window.location.hash = `fiche/${v.id}/entretiens`; };
+      const bRem = document.createElement("button");
+      bRem.type = "button"; bRem.textContent = "⏰ Rappels"; bRem.className = "ghost";
+      bRem.onclick = () => { window.location.hash = `fiche/${v.id}/rappels`; };
+      const bEdit = document.createElement("button");
+      bEdit.type = "button"; bEdit.textContent = "✏️ Gérer"; bEdit.className = "ghost";
+      bEdit.onclick = () => goToVehicleSection(v.id, "edit");
+      actions.append(bMaint, bRem, bEdit);
+      info.append(name, meta, status, spentLine, actions);
+      card.append(visual, info);
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+  }
+}
+
+document.getElementById("cta-add-vehicle").addEventListener("click", () => {
+  show("vehicules");
+  document.getElementById("vehicle-form").scrollIntoView({ behavior: "smooth" });
+  const brand = document.querySelector('#vehicle-form input[name="brand"]');
+  if (brand) brand.focus();
+});
+document.getElementById("cta-add-reminder").addEventListener("click", () => {
+  show("rappels");
+  document.getElementById("rem-form").scrollIntoView({ behavior: "smooth" });
+});
+document.getElementById("cta-manage").addEventListener("click", () => show("vehicules"));
+
 fetch("/api/health")
   .then((r) => r.json())
   .then((d) => {
@@ -462,4 +1004,6 @@ fetch("/api/health")
     if (el) { el.textContent = "hors ligne"; el.className = "ko"; }
   });
 
+loadCatalog();
+route();
 load();
