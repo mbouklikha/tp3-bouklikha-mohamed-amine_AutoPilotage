@@ -27,6 +27,8 @@ button:hover { filter:brightness(1.1); }
 .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.8rem; }
 label { display:flex; flex-direction:column; gap:.3rem; font-size:.9rem; }
 input { background:#0d1117; color:var(--text); border:1px solid #333; border-radius:.5rem; padding:.55rem .7rem; }
+select, textarea { background:#0d1117; color:var(--text); border:1px solid #333; border-radius:.5rem; padding:.55rem .7rem; font:inherit; }
+textarea { resize:vertical; }
 .actions { display:flex; gap:.6rem; margin-top:1rem; }
 #form-cancel { background:#555; }
 @media (max-width:700px){ .layout{flex-direction:column;} .sidebar{width:100%;} }
