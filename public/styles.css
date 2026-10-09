@@ -1,0 +1,32 @@
+:root { --bg:#0d1117; --panel:#161b22; --accent:#e10600; --text:#e6edf3; --muted:#8b949e; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+.layout { display:flex; min-height:100vh; }
+.sidebar { width:240px; background:#0a0d12; padding:1.5rem 1rem; display:flex; flex-direction:column; gap:1.5rem; border-right:1px solid #222; }
+.brand { font-weight:800; font-size:1.2rem; }
+.sidebar nav { display:flex; flex-direction:column; gap:.5rem; }
+.sidebar a { color:var(--text); text-decoration:none; padding:.6rem .8rem; border-radius:.5rem; }
+.sidebar a.active, .sidebar a:hover { background:var(--panel); border-left:3px solid var(--accent); }
+.server-status { margin-top:auto; color:var(--muted); font-size:.9rem; }
+.server-status .ok { color:#3fb950; } .server-status .ko { color:var(--accent); }
+main { flex:1; padding:2rem; }
+.topbar h1 { margin:0; } .hint { color:var(--muted); }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1rem; margin:1.5rem 0; }
+.card { background:var(--panel); border:1px solid #2a2f36; border-radius:.75rem; padding:1rem 1.2rem; }
+.card .big { font-size:2rem; margin:.3rem 0; } .card small { color:var(--muted); }
+.panel { background:var(--panel); border:1px solid #2a2f36; border-radius:.75rem; padding:1.2rem; }
+.demo-list { color:var(--muted); }
+.alert { background:#3d1113; border:1px solid var(--accent); border-radius:.5rem; padding:.7rem 1rem; margin:.7rem 0; }
+.vehicle-list { list-style:none; padding:0; display:grid; gap:.7rem; margin:1rem 0; }
+.vehicle-card { background:var(--panel); border:1px solid #2a2f36; border-radius:.75rem; padding:1rem 1.2rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.vehicle-card small { color:var(--muted); display:block; margin-top:.2rem; }
+.row-actions { display:flex; gap:.5rem; }
+button { background:#238636; color:#fff; border:none; border-radius:.5rem; padding:.6rem 1rem; cursor:pointer; }
+button.danger { background:var(--accent); }
+button:hover { filter:brightness(1.1); }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:.8rem; }
+label { display:flex; flex-direction:column; gap:.3rem; font-size:.9rem; }
+input { background:#0d1117; color:var(--text); border:1px solid #333; border-radius:.5rem; padding:.55rem .7rem; }
+.actions { display:flex; gap:.6rem; margin-top:1rem; }
+#form-cancel { background:#555; }
+@media (max-width:700px){ .layout{flex-direction:column;} .sidebar{width:100%;} }
