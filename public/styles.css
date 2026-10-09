@@ -31,4 +31,12 @@ select, textarea { background:#0d1117; color:var(--text); border:1px solid #333;
 textarea { resize:vertical; }
 .actions { display:flex; gap:.6rem; margin-top:1rem; }
 #form-cancel { background:#555; }
+.filters { display:flex; gap:.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.filters button { background:#21262d; }
+.filters button.active { background:#238636; }
+.badge { display:inline-block; margin-top:.3rem; font-size:.75rem; font-weight:700; padding:.15rem .6rem; border-radius:1rem; background:#555; }
+.status-a_venir .badge { background:#1f6feb; }
+.status-en_retard .badge { background:var(--accent); }
+.status-termine .badge { background:#238636; }
+.status-termine strong { text-decoration:line-through; color:var(--muted); }
 @media (max-width:700px){ .layout{flex-direction:column;} .sidebar{width:100%;} }

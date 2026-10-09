@@ -14,6 +14,7 @@
         <a href="#" class="active" data-section="dashboard">Tableau de bord</a>
         <a href="#vehicules" data-section="vehicules">Véhicules</a>
         <a href="#entretiens" data-section="entretiens">Entretiens</a>
+        <a href="#rappels" data-section="rappels">Rappels</a>
         <a href="#stats" data-section="stats">Statistiques</a>
       </nav>
       <div class="server-status">Serveur : <span id="server-status">vérification…</span></div>
@@ -97,6 +98,40 @@
               <button type="button" id="maint-cancel" hidden>Annuler</button>
             </div>
             <p id="maint-form-error" class="alert" hidden></p>
+          </form>
+        </section>
+      </section>
+
+      <section id="section-rappels" hidden>
+        <header class="topbar"><h1>Rappels d'entretien</h1></header>
+        <div class="panel filters">
+          <button type="button" data-filter="" class="active">Tous</button>
+          <button type="button" data-filter="a_venir">À venir</button>
+          <button type="button" data-filter="en_retard">En retard</button>
+          <button type="button" data-filter="termine">Terminés</button>
+        </div>
+        <div id="rem-error" class="alert" hidden></div>
+        <div id="rem-loading">Chargement…</div>
+        <div id="rem-empty" class="panel" hidden>
+          <strong>Aucun rappel pour le moment.</strong>
+          <p>Programmez votre premier rappel avec le formulaire ci-dessous.</p>
+        </div>
+        <ul id="rem-list" class="vehicle-list"></ul>
+        <section class="panel">
+          <h2 id="rem-form-title">Ajouter un rappel</h2>
+          <form id="rem-form">
+            <div class="grid">
+              <label>Véhicule *<select name="vehicle_id" id="rem-vehicle" required></select></label>
+              <label>Titre *<input name="title" required maxlength="100" /></label>
+              <label>Date d'échéance<input name="due_date" type="date" /></label>
+              <label>Kilométrage prévu<input name="due_mileage" type="number" min="0" step="1" /></label>
+            </div>
+            <p class="hint">Au moins une échéance (date ou kilométrage) est requise.</p>
+            <div class="actions">
+              <button type="submit" id="rem-submit">Ajouter</button>
+              <button type="button" id="rem-cancel" hidden>Annuler</button>
+            </div>
+            <p id="rem-form-error" class="alert" hidden></p>
           </form>
         </section>
       </section>

@@ -3,7 +3,7 @@ const state = { vehicles: [], editingId: null, records: [], editingRecordId: nul
 const TYPE_LABELS = { entretien: "Entretien", reparation: "Réparation", controle: "Contrôle technique", autre: "Autre" };
 
 function show(section) {
-  for (const s of ["dashboard", "vehicules", "entretiens", "stats"]) {
+  for (const s of ["dashboard", "vehicules", "entretiens", "rappels", "stats"]) {
     document.getElementById(`section-${s}`).hidden = s !== section;
   }
   document.querySelectorAll(".sidebar nav a").forEach((a) => {
@@ -66,6 +66,7 @@ async function load() {
     state.vehicles = data.vehicles || [];
     render();
     syncMaintVehicleSelect();
+    syncRemVehicleSelect();
   } catch (e) {
     err.textContent = e.message;
     err.hidden = false;
@@ -249,6 +250,152 @@ document.getElementById("maint-form").addEventListener("submit", async (e) => {
 
 document.querySelectorAll(".sidebar nav a").forEach((a) => {
   a.addEventListener("click", (e) => { e.preventDefault(); show(a.dataset.section); });
+});
+
+// ---- Rappels ----
+
+const REM_STATUS = { a_venir: "À venir", en_retard: "En retard", termine: "Terminé" };
+const remState = { reminders: [], filter: "", editingId: null };
+
+function syncRemVehicleSelect() {
+  const sel = document.getElementById("rem-vehicle");
+  const current = sel.value;
+  sel.innerHTML = "";
+  for (const v of state.vehicles) {
+    const opt = document.createElement("option");
+    opt.value = String(v.id);
+    opt.textContent = `${v.brand} ${v.model}`;
+    sel.appendChild(opt);
+  }
+  if (state.vehicles.some((v) => String(v.id) === current)) sel.value = current;
+  loadReminders();
+}
+
+function renderReminders() {
+  const list = document.getElementById("rem-list");
+  const empty = document.getElementById("rem-empty");
+  document.getElementById("rem-loading").hidden = true;
+  list.innerHTML = "";
+  empty.hidden = remState.reminders.length !== 0;
+  for (const r of remState.reminders) {
+    const li = document.createElement("li");
+    li.className = `vehicle-card status-${r.status}`;
+    li.innerHTML = `<div><strong></strong><small></small><span class="badge"></span></div><div class="row-actions"></div>`;
+    li.querySelector("strong").textContent = r.title;
+    const details = [`${r.vehicle.brand} ${r.vehicle.model}`];
+    if (r.due_date) details.push(`échéance : ${r.due_date}`);
+    if (r.due_mileage !== undefined) details.push(`${Number(r.due_mileage).toLocaleString("fr-FR")} km`);
+    li.querySelector("small").textContent = details.join(" · ");
+    li.querySelector(".badge").textContent = REM_STATUS[r.status] || r.status;
+    const actions = li.querySelector(".row-actions");
+    if (r.status !== "termine") {
+      const done = document.createElement("button");
+      done.textContent = "Terminer";
+      done.onclick = () => setReminderDone(r, true);
+      actions.appendChild(done);
+      const edit = document.createElement("button");
+      edit.textContent = "Modifier";
+      edit.onclick = () => startReminderEdit(r);
+      actions.appendChild(edit);
+    } else {
+      const reopen = document.createElement("button");
+      reopen.textContent = "Rouvrir";
+      reopen.onclick = () => setReminderDone(r, false);
+      actions.appendChild(reopen);
+    }
+    const del = document.createElement("button");
+    del.textContent = "Supprimer";
+    del.className = "danger";
+    del.onclick = () => removeReminder(r);
+    actions.appendChild(del);
+    list.appendChild(li);
+  }
+}
+
+async function loadReminders() {
+  const err = document.getElementById("rem-error");
+  err.hidden = true;
+  try {
+    const q = remState.filter === "" ? "" : `?status=${remState.filter}`;
+    const data = await api(`/api/reminders${q}`);
+    remState.reminders = data.reminders || [];
+    renderReminders();
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+    document.getElementById("rem-loading").hidden = true;
+  }
+}
+
+async function setReminderDone(r, done) {
+  await api(`/api/reminders/${r.id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      vehicle_id: r.vehicle_id, title: r.title,
+      due_date: r.due_date || "", due_mileage: r.due_mileage, done,
+    }),
+  });
+  await loadReminders();
+}
+
+function startReminderEdit(r) {
+  remState.editingId = r.id;
+  const f = document.getElementById("rem-form");
+  f.vehicle_id.value = String(r.vehicle_id);
+  f.title.value = r.title;
+  f.due_date.value = r.due_date || "";
+  f.due_mileage.value = r.due_mileage === undefined ? "" : String(r.due_mileage);
+  document.getElementById("rem-form-title").textContent = "Modifier le rappel";
+  document.getElementById("rem-submit").textContent = "Enregistrer";
+  document.getElementById("rem-cancel").hidden = false;
+}
+
+function resetReminderForm() {
+  remState.editingId = null;
+  document.getElementById("rem-form").reset();
+  document.getElementById("rem-form-title").textContent = "Ajouter un rappel";
+  document.getElementById("rem-submit").textContent = "Ajouter";
+  document.getElementById("rem-cancel").hidden = true;
+  document.getElementById("rem-form-error").hidden = true;
+}
+
+async function removeReminder(r) {
+  if (!window.confirm(`Supprimer le rappel « ${r.title} » ?`)) return;
+  await api(`/api/reminders/${r.id}`, { method: "DELETE" });
+  await loadReminders();
+}
+
+document.querySelectorAll("#section-rappels .filters button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#section-rappels .filters button").forEach((x) => x.classList.remove("active"));
+    b.classList.add("active");
+    remState.filter = b.dataset.filter;
+    loadReminders();
+  });
+});
+document.getElementById("rem-cancel").addEventListener("click", resetReminderForm);
+document.getElementById("rem-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const err = document.getElementById("rem-form-error");
+  err.hidden = true;
+  const dueMileage = f.due_mileage.value === "" ? undefined : Number(f.due_mileage.value);
+  const body = {
+    vehicle_id: Number(f.vehicle_id.value), title: f.title.value.trim(),
+    due_date: f.due_date.value, due_mileage: dueMileage,
+  };
+  try {
+    if (remState.editingId === null) {
+      await api("/api/reminders", { method: "POST", body: JSON.stringify(body) });
+    } else {
+      await api(`/api/reminders/${remState.editingId}`, { method: "PUT", body: JSON.stringify(body) });
+    }
+    resetReminderForm();
+    await loadReminders();
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.hidden = false;
+  }
 });
 
 fetch("/api/health")

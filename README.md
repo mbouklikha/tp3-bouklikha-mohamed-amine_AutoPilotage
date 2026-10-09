@@ -35,3 +35,9 @@ avec total des coûts. Types : entretien, réparation, contrôle technique,
 autre. Validation : coût positif ou nul, date réelle non future, kilométrage
 positif ou nul, véhicule existant requis. Section « Entretiens » dans
 l'interface (sélecteur de véhicule, historique, total, formulaire).
+
+Rappels d'entretien (`/api/reminders`) : titre + échéance date et/ou
+kilométrage (au moins une requise), statuts À venir / En retard / Terminé
+calculés côté serveur (retard si date dépassée ou kilométrage du véhicule
+atteint), filtres par statut, terminer/rouvrir, modifier, supprimer.
+Section « Rappels » dans l'interface avec badges de statut.
