@@ -9,6 +9,7 @@ function show(section) {
   document.querySelectorAll(".sidebar nav a").forEach((a) => {
     a.classList.toggle("active", a.dataset.section === section);
   });
+  if (section === "stats") loadStats();
 }
 
 async function api(path, options) {
@@ -54,8 +55,60 @@ function render() {
   const km = state.vehicles.reduce((s, v) => s + Number(v.mileage || 0), 0);
   document.getElementById("stat-count").textContent = String(n);
   document.getElementById("stat-km").textContent = `${km.toLocaleString("fr-FR")} km`;
-  document.getElementById("stats-count").textContent = String(n);
-  document.getElementById("stats-km").textContent = `${km.toLocaleString("fr-FR")} km`;
+}
+
+const TYPE_LABELS_STATS = { entretien: "Entretien", reparation: "Réparation", controle: "Contrôle technique", autre: "Autre" };
+
+function euros(n) {
+  return `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+
+function renderBars(containerId, items, labelOf) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  const max = Math.max(0, ...items.map((i) => i.total));
+  if (items.length === 0 || max === 0) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = "Aucune dépense enregistrée.";
+    box.appendChild(p);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("div");
+    row.className = "bar-row";
+    row.innerHTML = `<span></span><div class="bar-track"><div class="bar-fill"></div></div><small></small>`;
+    row.querySelector("span").textContent = labelOf(item);
+    row.querySelector(".bar-fill").style.width = `${Math.max(1, Math.round((item.total / max) * 100))}%`;
+    row.querySelector("small").textContent = `${euros(item.total)} (${item.count})`;
+    box.appendChild(row);
+  }
+}
+
+async function loadStats() {
+  const err = document.getElementById("stats-error");
+  err.hidden = true;
+  try {
+    const data = await api("/api/stats");
+    const s = data.stats;
+    document.getElementById("stats-loading").hidden = true;
+    const hasData = s.vehicleCount > 0 || s.recordCount > 0;
+    document.getElementById("stats-empty").hidden = hasData;
+    document.getElementById("stats-content").hidden = !hasData;
+    document.getElementById("stat-expenses").textContent = euros(s.totalCost);
+    if (!hasData) return;
+    document.getElementById("st-total").textContent = euros(s.totalCost);
+    document.getElementById("st-count").textContent = `${s.recordCount} intervention(s)`;
+    document.getElementById("st-avg").textContent = euros(s.averageCost);
+    document.getElementById("st-vehicles").textContent = String(s.vehicleCount);
+    document.getElementById("st-mileage").textContent = `${Number(s.totalMileage).toLocaleString("fr-FR")} km cumulés`;
+    renderBars("chart-vehicles", s.byVehicle, (i) => `${i.brand} ${i.model}`);
+    renderBars("chart-types", s.byType, (i) => TYPE_LABELS_STATS[i.type] || i.type);
+  } catch (e) {
+    err.textContent = e.message;
+    err.hidden = false;
+    document.getElementById("stats-loading").hidden = true;
+  }
 }
 
 async function load() {

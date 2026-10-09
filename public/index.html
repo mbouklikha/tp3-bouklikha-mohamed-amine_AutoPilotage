@@ -28,7 +28,7 @@
         <section class="cards">
           <article class="card"><h2>Véhicules suivis</h2><p class="big" id="stat-count">…</p><small>Données réelles</small></article>
           <article class="card"><h2>Kilométrage total</h2><p class="big" id="stat-km">…</p><small>Données réelles</small></article>
-          <article class="card"><h2>Dépenses / Rappels</h2><p class="big">—</p><small>Disponible à une prochaine étape</small></article>
+          <article class="card"><h2>Dépenses totales</h2><p class="big" id="stat-expenses">…</p><small>Entretiens et réparations</small></article>
         </section>
       </section>
 
@@ -137,10 +137,30 @@
       </section>
 
       <section id="section-stats" hidden>
-        <header class="topbar"><h1>Statistiques</h1></header>
-        <div class="panel">
-          <p>Les statistiques détaillées (dépenses, coût au km, graphiques) arriveront avec les prochaines étapes.</p>
-          <p>Véhicules enregistrés : <strong id="stats-count">…</strong> — kilométrage cumulé : <strong id="stats-km">…</strong></p>
+        <header class="topbar">
+          <h1>Statistiques</h1>
+          <p class="hint">Calculées depuis vos données enregistrées.</p>
+        </header>
+        <div id="stats-error" class="alert" hidden></div>
+        <div id="stats-loading">Chargement…</div>
+        <div id="stats-empty" class="panel" hidden>
+          <strong>Aucune donnée pour le moment.</strong>
+          <p>Ajoutez des véhicules et des interventions pour voir vos statistiques.</p>
+        </div>
+        <div id="stats-content" hidden>
+          <section class="cards">
+            <article class="card"><h2>Dépenses totales</h2><p class="big" id="st-total">…</p><small id="st-count">…</small></article>
+            <article class="card"><h2>Coût moyen / intervention</h2><p class="big" id="st-avg">…</p><small>Entretiens et réparations</small></article>
+            <article class="card"><h2>Véhicules suivis</h2><p class="big" id="st-vehicles">…</p><small id="st-mileage">…</small></article>
+          </section>
+          <section class="panel">
+            <h2>Dépenses par véhicule</h2>
+            <div id="chart-vehicles" class="bars"></div>
+          </section>
+          <section class="panel">
+            <h2>Dépenses par type d'intervention</h2>
+            <div id="chart-types" class="bars"></div>
+          </section>
         </div>
       </section>
     </main>

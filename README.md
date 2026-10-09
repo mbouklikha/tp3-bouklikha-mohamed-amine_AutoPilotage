@@ -41,3 +41,9 @@ kilométrage (au moins une requise), statuts À venir / En retard / Terminé
 calculés côté serveur (retard si date dépassée ou kilométrage du véhicule
 atteint), filtres par statut, terminer/rouvrir, modifier, supprimer.
 Section « Rappels » dans l'interface avec badges de statut.
+
+Statistiques (`GET /api/stats`, filtre optionnel `?vehicle_id=`) : total des
+dépenses, nombre d'interventions, coût moyen, dépenses par véhicule et par
+type, kilométrage total. Section « Statistiques » avec cartes et graphiques
+en barres CSS, état vide propre, tableau de bord affichant les dépenses
+réelles.
